@@ -1,6 +1,6 @@
 import json
 from django.http import JsonResponse, Http404
-from django.views.generic.edit import BaseUpdateView
+from django.views.generic.edit import BaseUpdateView, BaseCreateView
 from .models import Question, Answer
 
 
@@ -45,7 +45,8 @@ class PollView(JSONResponseMixin, BaseUpdateView):
                 errors['errors'].append({'message': 'choices is empty list'})
 
             if errors['errors']:
-                return JsonResponse(errors)
+                errors['status'] = 400
+                return self.render_to_response(errors)
 
             for choice in choices:
                 try:
@@ -81,5 +82,3 @@ class PollView(JSONResponseMixin, BaseUpdateView):
 
     def render_to_response(self, context, **response_kwargs):
         return self.render_to_json_response(context, **response_kwargs)
-
-
