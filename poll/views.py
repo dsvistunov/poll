@@ -24,9 +24,6 @@ class JSONResponseMixin:
 class PollView(JSONResponseMixin, BaseUpdateView):
     model = Question
 
-    def get(self, request, *args, **kwargs):
-        return super(PollView, self).get(request, *args, **kwargs)
-
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         question = self.object
