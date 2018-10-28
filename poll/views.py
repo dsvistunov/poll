@@ -26,14 +26,7 @@ class JSONResponseMixin:
         self.object = form.save()
         return self.render_to_json_response(self.get_context_data())
 
-
-class PollCreateView(JSONResponseMixin, CreateView):
-    model = Question
-
-    def get(self, request, *args, **kwargs):
-        return self.render_to_response({'errors': 'Method Get not allowed'}, status=405)
-
-    def post(self, request, *args, **kwargs):
+    def is_data_valid(self, request):
         data = json.loads(request.body)
         question = data.get('question', None)
         choices = data.get('choices', None)
@@ -50,13 +43,29 @@ class PollCreateView(JSONResponseMixin, CreateView):
             errors['errors'].append({'message': 'choices is empty list'})
 
         if errors['errors']:
-            return self.render_to_json_response(errors, status=400)
+            self.errors = errors
+            return False
         else:
-            question = Question.objects.create(text=question)
-            for choice in choices:
+            self.question = question
+            self.choices = choices
+            return True
+
+
+class PollCreateView(JSONResponseMixin, CreateView):
+    model = Question
+
+    def get(self, request, *args, **kwargs):
+        return self.render_to_response({'errors': 'Method Get not allowed'}, status=405)
+
+    def post(self, request, *args, **kwargs):
+        if self.is_data_valid(request):
+            question = Question.objects.create(text=self.question)
+            for choice in self.choices:
                 question.answer_set.create(type=choice['type'], text=choice['text'])
             self.object = question
             return self.render_to_response(self.get_context_data(), status=200)
+        else:
+            return self.render_to_response(self.errors, status=400)
 
     def render_to_response(self, context, **response_kwargs):
         return self.render_to_json_response(context, **response_kwargs)
@@ -91,34 +100,31 @@ class PollUpdateView(JSONResponseMixin, UpdateView):
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
-        question = self.object
-        if question:
-            data = json.loads(request.body)
-            choices = data.get('choices', None)
-            errors = {
-                'errors': []
-            }
-
-            if choices is None:
-                errors['errors'].append({'message': 'key "choices" not in request body'})
-            elif not isinstance(choices, list):
-                errors['errors'].append({'message': 'key "choices" must be list type'})
-            elif len(choices) == 0:
-                errors['errors'].append({'message': 'choices is empty list'})
-
-            if errors['errors']:
-                errors['status'] = 400
-                return self.render_to_response(errors)
-
-            for choice in choices:
-                try:
-                    answer = question.answer_set.get(id=choice['id'])
-                    answer.type = choice['type']
-                    answer.text = choice['text']
-                    answer.save()
-                except KeyError:
-                    Answer.objects.create(question=question, text=choice['text'], type=choice['type'])
-        return self.render_to_response(self.get_context_data())
+        if self.object:
+            if self.is_data_valid(request):
+                question = self.object
+                if question.text != self.question:
+                    question.text = self.question
+                    question.save()
+                for choice in self.choices:
+                    try:
+                        answer = question.answer_set.get(id=choice['id'])
+                        if answer.type != choice['type']:
+                            print('type changed %s' % choice['id'])
+                            answer.type = choice['type']
+                        elif answer.text != choice['text']:
+                            print('text saved%s' % choice['id'])
+                            answer.text = choice['text']
+                        answer.save()
+                    except KeyError:
+                        Answer.objects.create(question=question, text=choice['text'], type=choice['type'])
+                return self.render_to_response(self.get_context_data(), status=200)
+            else:
+                return self.render_to_response(self.errors, status=400)
+        else:
+            error = 'Object with id = %s, does not exist' % self.kwargs.get(self.pk_url_kwarg)
+            context = {'errors': {'message': error}}
+            return self.render_to_response(context, status=404)
 
     def get_object(self, queryset=None):
         try:
