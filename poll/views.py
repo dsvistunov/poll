@@ -19,7 +19,10 @@ class JSONResponseMixin:
         context['question'] = {'id': question.id, 'text': question.text}
         context['choices'] = []
         for choise in question.answer_set.all():
-            context['choices'].append({"id": choise.id, "type": choise.type, "text": choise.text})
+            context['choices'].append({
+                "id": choise.id, "type": choise.type,
+                "text": choise.text, "votes": choise.votes
+            })
         return context
 
     def form_valid(self, form):
