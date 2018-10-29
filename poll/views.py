@@ -25,10 +25,6 @@ class JSONResponseMixin:
             })
         return context
 
-    def form_valid(self, form):
-        self.object = form.save()
-        return self.render_to_json_response(self.get_context_data())
-
     def is_data_valid(self, request):
         data = json.loads(request.body)
         question = data.get('question', None)
@@ -113,11 +109,11 @@ class PollUpdateView(JSONResponseMixin, UpdateView):
                     try:
                         answer = question.answer_set.get(id=choice['id'])
                         if answer.type != choice['type']:
-                            print('type changed %s' % choice['id'])
                             answer.type = choice['type']
                         elif answer.text != choice['text']:
-                            print('text saved%s' % choice['id'])
                             answer.text = choice['text']
+                        elif answer.votes != choice['votes']:
+                            answer.votes += 1
                         answer.save()
                     except KeyError:
                         Answer.objects.create(question=question, text=choice['text'], type=choice['type'])
