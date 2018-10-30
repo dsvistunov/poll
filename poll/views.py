@@ -1,6 +1,8 @@
 import json
 from django.http import JsonResponse, Http404
 from django.views.generic import CreateView, DetailView, UpdateView
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 from .models import Question, Answer
 
 
@@ -29,6 +31,7 @@ class JSONResponseMixin:
         data = json.loads(request.body)
         question = data.get('question', None)
         choices = data.get('choices', None)
+        permission = data.get('permission', None)
         errors = {
             'errors': []
         }
@@ -40,6 +43,14 @@ class JSONResponseMixin:
             errors['errors'].append({'message': 'key "choices" must be list type'})
         elif len(choices) == 0:
             errors['errors'].append({'message': 'choices is empty list'})
+        elif permission is None:
+            errors['errors'].append({'message': 'key "permissions" not in request body'})
+        elif permission == '':
+            errors['errors'].append({'message': 'permissions is empty'})
+        elif permission not in ['not_authorized', 'authorized', 'email_confirmed']:
+            errors['errors'].append({
+                'message': 'passed "%s" permission, but allowed is: '
+                           'not_authorized, authorized, email_confirmed' % permission})
 
         if errors['errors']:
             self.errors = errors
@@ -47,6 +58,7 @@ class JSONResponseMixin:
         else:
             self.question = question
             self.choices = choices
+            self.permission = permission
             return True
 
 
@@ -61,6 +73,13 @@ class PollCreateView(JSONResponseMixin, CreateView):
             question = Question.objects.create(text=self.question)
             for choice in self.choices:
                 question.answer_set.create(type=choice['type'], text=choice['text'])
+
+            content_type = ContentType.objects.get_for_model(Question)
+            Permission.objects.create(
+                codename=self.permission,
+                content_type=content_type
+            )
+
             self.object = question
             return self.render_to_response(self.get_context_data(), status=200)
         else:
