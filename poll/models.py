@@ -10,3 +10,7 @@ class Answer(models.Model):
     type = models.CharField(max_length=14)
     text = models.CharField(max_length=120)
     votes = models.IntegerField(default=0)
+
+
+class UserAgent(models.Model):
+    data = models.TextField()

@@ -3,7 +3,7 @@ from django.http import JsonResponse, Http404
 from django.views.generic import CreateView, DetailView, UpdateView
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
-from .models import Question, Answer
+from .models import Question, Answer, UserAgent
 
 
 class JSONResponseMixin:
@@ -136,6 +136,9 @@ class PollUpdateView(JSONResponseMixin, UpdateView):
                         answer.save()
                     except KeyError:
                         Answer.objects.create(question=question, text=choice['text'], type=choice['type'])
+
+                UserAgent.objects.create(date=request.META['HTTP_USER_AGENT'])
+
                 return self.render_to_response(self.get_context_data(), status=200)
             else:
                 return self.render_to_response(self.errors, status=400)
