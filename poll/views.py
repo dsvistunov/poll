@@ -1,9 +1,10 @@
 import json
+
 from django.http import JsonResponse, Http404
 from django.views.generic import CreateView, DetailView, UpdateView
-from django.contrib.auth.models import Permission
-from django.contrib.contenttypes.models import ContentType
-from .models import Question, Answer, UserAgent
+
+from .models import Poll, Question, Answer, UserAgent
+from .forms import PollModelForm, QuestionModelForm, AnswerModelForm
 
 
 class JSONResponseMixin:
@@ -15,17 +16,17 @@ class JSONResponseMixin:
             **response_kwargs
         )
 
-    def get_context_data(self, **kwargs):
-        context = {}
-        question = self.object
-        context['question'] = {'id': question.id, 'text': question.text}
-        context['choices'] = []
-        for choise in question.answer_set.all():
-            context['choices'].append({
-                "id": choise.id, "type": choise.type,
-                "text": choise.text, "votes": choise.votes
-            })
-        return context
+    # def get_context_data(self, **kwargs):
+    #     context = {}
+    #     question = self.object
+    #     context['question'] = {'id': question.id, 'text': question.text}
+    #     context['choices'] = []
+    #     for choise in question.answer_set.all():
+    #         context['choices'].append({
+    #             "id": choise.id, "type": choise.type,
+    #             "text": choise.text, "votes": choise.votes
+    #         })
+    #     return context
 
     def is_data_valid(self, request):
         data = json.loads(request.body)
@@ -62,31 +63,68 @@ class JSONResponseMixin:
             return True
 
 
-class PollCreateView(JSONResponseMixin, CreateView):
-    model = Question
+class PollCreateView(CreateView):
+    model = Poll
+    form_class = PollModelForm
+    template_name = 'poll_create.html'
 
-    def get(self, request, *args, **kwargs):
-        return self.render_to_response({'errors': 'Method Get not allowed'}, status=405)
+
+class QuestionCreateView(JSONResponseMixin, CreateView):
+    model = Question
+    form_class = QuestionModelForm
+    template_name = 'question_create.html'
+    success_url = '/create/'
 
     def post(self, request, *args, **kwargs):
-        if self.is_data_valid(request):
-            question = Question.objects.create(text=self.question)
-            for choice in self.choices:
-                question.answer_set.create(type=choice['type'], text=choice['text'])
-
-            content_type = ContentType.objects.get_for_model(Question)
-            Permission.objects.create(
-                codename=self.permission,
-                content_type=content_type
-            )
-
-            self.object = question
-            return self.render_to_response(self.get_context_data(), status=200)
+        errors = {}
+        form = self.get_form()
+        type_ = request.POST.get('type', None)
+        if form.is_valid():
+            self.object = form.save(commit=False)
+            self.object.poll_id = self.kwargs.get(self.pk_url_kwarg)
+            self.object.save()
         else:
-            return self.render_to_response(self.errors, status=400)
+            for key, value in form.errors.as_data().items():
+                errors[key] = value[0].message
 
-    def render_to_response(self, context, **response_kwargs):
-        return self.render_to_json_response(context, **response_kwargs)
+        for key, value in request.POST.items():
+            if 'choice' in key:
+                answer_form = AnswerModelForm({'type': type_, 'text': value})
+                if answer_form.is_valid():
+                    answer = answer_form.save(commit=False)
+                    answer.question = self.object
+                    answer.save()
+                else:
+                    for _, value in answer_form.errors.as_data().items():
+                        errors[key] = value[0].message
+
+        if errors:
+            return self.render_to_json_response(errors, status=400)
+        else:
+            return self.render_to_json_response({'msg': 'success'})
+
+    # def get(self, request, *args, **kwargs):
+    #     return self.render_to_response({'errors': 'Method Get not allowed'}, status=405)
+    #
+    # def post(self, request, *args, **kwargs):
+    #     if self.is_data_valid(request):
+    #         question = Question.objects.create(text=self.question)
+    #         for choice in self.choices:
+    #             question.answer_set.create(type=choice['type'], text=choice['text'])
+    #
+    #         content_type = ContentType.objects.get_for_model(Question)
+    #         Permission.objects.create(
+    #             codename=self.permission,
+    #             content_type=content_type
+    #         )
+    #
+    #         self.object = question
+    #         return self.render_to_response(self.get_context_data(), status=200)
+    #     else:
+    #         return self.render_to_response(self.errors, status=400)
+    #
+    # def render_to_response(self, context, **response_kwargs):
+    #     return self.render_to_json_response(context, **response_kwargs)
 
 
 class PollDetailView(JSONResponseMixin, DetailView):

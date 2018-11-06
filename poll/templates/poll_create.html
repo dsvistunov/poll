@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+
+{% block content %}
+    <h3>Create poll</h3>
+    <form method="post" id="form" action={% url 'poll_create' %}>
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div>
+            <input type="submit" value="Create">
+        </div>
+    </form>
+{% endblock %}
+
+{% block javascript %}{% endblock %}

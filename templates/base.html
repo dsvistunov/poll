@@ -1,0 +1,23 @@
+{% load staticfiles %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        .contante {
+            width: 800px;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+
+<div class="contante">
+    {% block content %}{% endblock %}
+</div>
+    <script src={% static 'poll/js/jquery-1.12.4.min.js' %}></script>
+    {% block javascript %}{% endblock %}
+
+</body>
+</html>
