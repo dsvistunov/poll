@@ -1,5 +1,6 @@
 import json
 
+from django.db import transaction, IntegrityError
 from django.http import JsonResponse, Http404
 from django.views.generic import CreateView, DetailView, UpdateView
 
@@ -79,29 +80,32 @@ class QuestionCreateView(JSONResponseMixin, CreateView):
         errors = {}
         form = self.get_form()
         type_ = request.POST.get('type', None)
-        if form.is_valid():
-            self.object = form.save(commit=False)
-            self.object.poll_id = self.kwargs.get(self.pk_url_kwarg)
-            self.object.save()
-        else:
-            for key, value in form.errors.as_data().items():
-                errors[key] = value[0].message
-
-        for key, value in request.POST.items():
-            if 'choice' in key:
-                answer_form = AnswerModelForm({'type': type_, 'text': value})
-                if answer_form.is_valid():
-                    answer = answer_form.save(commit=False)
-                    answer.question = self.object
-                    answer.save()
+        try:
+            with transaction.atomic():
+                if form.is_valid():
+                    self.object = form.save(commit=False)
+                    self.object.poll_id = self.kwargs.get(self.pk_url_kwarg)
+                    self.object.save()
                 else:
-                    for _, value in answer_form.errors.as_data().items():
+                    for key, value in form.errors.as_data().items():
                         errors[key] = value[0].message
 
-        if errors:
+                for key, value in request.POST.items():
+                    if 'choice' in key:
+                        answer_form = AnswerModelForm({'type': type_, 'text': value})
+                        if answer_form.is_valid():
+                            answer = answer_form.save(commit=False)
+                            answer.question = self.object
+                            answer.save()
+                        else:
+                            for _, value in answer_form.errors.as_data().items():
+                                errors[key] = value[0].message
+                if errors:
+                    raise IntegrityError
+                else:
+                    return self.render_to_json_response({'msg': 'success'})
+        except IntegrityError:
             return self.render_to_json_response(errors, status=400)
-        else:
-            return self.render_to_json_response({'msg': 'success'})
 
     # def get(self, request, *args, **kwargs):
     #     return self.render_to_response({'errors': 'Method Get not allowed'}, status=405)

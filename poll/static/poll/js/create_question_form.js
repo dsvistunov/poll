@@ -87,14 +87,14 @@ $(document).ready(function () {
             method: 'post',
             data: form.serialize(),
             success: function (response) {
-                console.log("success");
-                console.log(response.msg)
+                $('#create_button').after(response.msg);
             },
-            error: function (xhr, ajaxOptions, thrownError) {
-                console.log("errors");
-                console.log(xhr.status);
-                console.log(thrownError);
-                console.log(xhr.responseText)
+            error: function (xhr) {
+                $.each(xhr.responseJSON, function (key, value) {
+                    var node = 'input[name=' + key + ']';
+                    var message = '<span style="color: red; position: absolute; width: 180px;">' + value + '</span>';
+                    $(node).after(message);
+                })
             }
         })
     });
