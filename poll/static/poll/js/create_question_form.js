@@ -2,21 +2,30 @@ $(document).ready(function () {
 
     var inp_cnt = 0;
 
-    function add_input (type) {
+    $('label[for=id_size]').hide();
+    $('#id_size').hide();
+
+    function add_input () {
         inp_cnt += 1;
+        var type = $('#id_type').val();
         var remove_btn = '';
-        if (type !== 'text' && type !== 'number'){
+        if (type !== 'TXT' && type !== 'NUM' && type !== 'CHK'){
             remove_btn = '<input id="input_remove" type="button" value="-"/>'
         }
-        $('#choices').append('<div id="input"><label for="input' + inp_cnt + '">Choice text: </label><input type="text" id="input' + inp_cnt + '" name="choice' + inp_cnt + '" placeholder="ansver text">' + remove_btn + '</div>')
-    }
 
-    function add_button() {
-        $('#button').append('<div id="add_button"><input type="button" value="+"/></div>');
+        if (type == 'MSL'){
+            $('label[for=id_size]').show();
+            $('#id_size').show();
+        }
+        $('#choices').append(
+            '<div id="input">' +
+            '<label for="input' + inp_cnt + '">Answer text: </label>' +
+            '<input type="text" id="input' + inp_cnt + '" name="choice' + inp_cnt + '" placeholder="ansver text">' +
+            remove_btn + '</div>'
+        )
     }
 
     $('#form').on('click', '#add_button', function () {
-        // $('#input').clone().val('').appendTo('#choices').find("input[type='text']").val("");
         add_input();
     });
 
@@ -24,25 +33,25 @@ $(document).ready(function () {
         $(this).closest('#input').remove();
     });
 
-    $('#types').change(function () {
+    $('#id_type').change(function () {
         $('#choices').empty();
         $('#add_button').remove();
-        if ($(this).val() == 'text'){
-            add_input('text');
-        }else if ($(this).val() == 'radio'){
-            add_input('radio');
-            add_button();
-        }else if ($(this).val() == 'checkbox'){
-            add_input('checkbox');
-            add_button();
-        }else if ($(this).val() == 'select'){
-            add_input('select');
-            add_button();
-        }else if ($(this).val() == 'multiselect'){
-            add_input('multiselect');
-            add_button();
-        }else if ($(this).val() == 'number'){
-            add_input('number');
+        $('label[for=id_size]').hide();
+        $('#id_size').hide();
+
+        if ($(this).val() == 'NUM'){
+            $('#choices').append(
+            '<div id="input">' +
+            '<label for="input' + inp_cnt + '">Default value: </label>' +
+            '<input type="number" id="input' + inp_cnt + '" name="choice' + inp_cnt + '">' +
+            'Max value: <input type="number" name="max_value">' +
+            'Min value: <input type="number" name="min_value"></div>'
+        )}else {
+            add_input();
+        }
+
+        if ($(this).val() !== 'TXT' && $(this).val() !== 'NUM' && $(this).val() !== 'CHK'){
+            $('#button').append('<div id="add_button"><input type="button" value="+"/></div>');
         }
     });
 

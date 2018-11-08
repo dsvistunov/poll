@@ -6,18 +6,6 @@
     <form method="post" id="form">
         {% csrf_token %}
         {{ form.as_p }}
-        <p>
-            Add answer
-            <select name="type" id="types">
-                <option value="text">text</option>
-                <option value="radio">radio</option>
-                <option value="checkbox">checkbox</option>
-                <option value="select">select</option>
-                <option value="multiselect">multiselect</option>
-                <option value="number">number</option>
-                <option selected value="empty"></option>
-            </select>
-        </p>
         <div id="choices"></div>
         <div id="button"></div>
         <div>

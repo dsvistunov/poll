@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h3>Poll</h3>
+    {{ user }}
+    <form method="post">{% csrf_token %}
+        <div>
+            <h2>{{ poll.title }}</h2>
+            <p>{{ poll.description }}</p>
+        </div>
+        <div>
+            <ol>
+                {% for question in poll.question_set.all %}
+                    <li>{{ question.text }}</li>
+                    {% if question.type == 'SLT' %}
+                        <select name="question_{{ question.id }}" id="">
+                    {% elif question.type == 'MSL' %}
+                        <select name="question_{{ question.id }}" id="" multiple size="{{ question.size }}">
+                    {% elif question.type == 'RAD' %}
+                        <ul>
+                    {% endif %}
+
+                    {% if question.type == 'SLT' or question.type == 'MSL' %}
+                        {% for answer in question.answer_set.all %}
+                            <option value="{{ answer.id }}">{{ answer.text }}</option>
+                        {% endfor %}
+                    {% elif question.type == 'TXT' %}
+                        {% with question.answer_set.first as answer %}
+                            <input type="text" name="question_{{ question.id }}" placeholder="{{ answer.text }}">
+                        {% endwith %}
+                    {% elif question.type == 'RAD' %}
+                        {% for answer in question.answer_set.all %}
+                            <li><input type="radio" name="question_{{ question.id }}" value="{{ answer.id }}"><label for="">{{ answer.text }}</label></li>
+                        {% endfor %}
+                    {% elif question.type == 'CHK' %}
+                        {% for answer in question.answer_set.all %}
+                            <input type="checkbox" name="question_{{ question.id }}" value="{{ answer.id }}"><label for="">{{ answer.text }}</label>
+                        {% endfor %}
+                    {% elif question.type == 'NUM' %}
+                        {% with question.answer_set.first as answer %}
+                            <input type="number" name="question_{{ question.id }}" max="{{ answer.max_value }}" min="{{ answer.min_value }}" value="{{ answer.text }}">
+                        {% endwith %}
+                    {% endif %}
+
+                    {% if question.type == 'SLT' or question.type == 'MSL' %}
+                        </select>
+                    {% elif question.type == 'RAD' %}
+                        </ul>
+                    {% endif %}
+                {% endfor %}
+            </ol>
+        </div>
+
+
+
+        <input type="submit" value="Submit">
+    </form>
+{% endblock %}
