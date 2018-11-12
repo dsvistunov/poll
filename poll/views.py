@@ -1,11 +1,10 @@
-import json
-
+from django.core.exceptions import ValidationError
 from django.db import transaction, IntegrityError
 from django.http import HttpResponseRedirect
-from django.http import JsonResponse, Http404
+from django.http import JsonResponse
 from django.views.generic import CreateView, DetailView, UpdateView
 
-from .models import Poll, Question, Answer, UserAgent
+from .models import Poll, Question, Answer, UserAgent, Anonymous
 from .forms import PollModelForm, QuestionModelForm, AnswerModelForm
 
 
@@ -57,35 +56,16 @@ class QuestionCreateView(JSONResponseMixin, CreateView):
                             for _, value in answer_form.errors.as_data().items():
                                 errors[key] = value[0].message
                 if errors:
-                    raise IntegrityError
+                    raise ValidationError('')
                 else:
                     return self.render_to_json_response({'msg': 'success'})
-        except IntegrityError:
+        except ValidationError:
             return self.render_to_json_response(errors, status=400)
 
 
 class PollDetailView(DetailView):
+    template_name = 'poll_detail.html'
     model = Poll
-
-    # def get(self, request, *args, **kwargs):
-    #     self.object = self.get_object()
-    #     if self.object:
-    #         context = self.get_context_data()
-    #         return self.render_to_response(context, status=200)
-    #     else:
-    #         error = 'Object with id = %s, does not exist' % self.kwargs.get(self.pk_url_kwarg)
-    #         context = {'errors': {'message': error}}
-    #         return self.render_to_response(context, status=404)
-    #
-    # def get_object(self, queryset=None):
-    #     try:
-    #         obj = super(PollDetailView, self).get_object()
-    #     except Http404:
-    #         obj = None
-    #     return obj
-    #
-    # def render_to_response(self, context, **response_kwargs):
-    #     return self.render_to_json_response(context, **response_kwargs)
 
 
 class PollUpdateView(JSONResponseMixin, UpdateView):
@@ -96,11 +76,25 @@ class PollUpdateView(JSONResponseMixin, UpdateView):
     success_url = '/polls/'
 
     def post(self, request, *args, **kwargs):
-        print(request.POST)
         for key, value in request.POST.items():
             if 'question' in key and value:
                 _, question_id = key.split('_')
                 question = Question.objects.get(id=question_id)
+                if request.user.is_authenticated():
+                    user = request.user
+                    if question.voted_users.filter(id=user.id).exists():
+                        context = {'error': 'your answers cannot be accepted because you are already answered'}
+                        return self.render_to_response(context=context)
+                    else:
+                        question.voted_users.add(user)
+                else:
+                    hash_ = request.POST.get('hashed_ip')
+                    anonym, _ = Anonymous.objects.get_or_create(hash=hash_)
+                    if question.voted_anonymous.filter(hash=hash_).exists():
+                        context = {'error': 'your answers cannot be accepted because you are already answered'}
+                        return self.render_to_response(context=context)
+                    else:
+                        question.voted_anonymous.add(anonym)
 
                 if question.type == 'TXT' or question.type == 'NUM':
                     question.answer_set.create(text=value)
@@ -109,4 +103,4 @@ class PollUpdateView(JSONResponseMixin, UpdateView):
                     answer.votes += 1
                     answer.save()
         self.object = self.get_object()
-        return HttpResponseRedirect(self.object.get_absolute_url())
+        return HttpResponseRedirect(self.object.get_detail_url())

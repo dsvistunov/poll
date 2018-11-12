@@ -3,6 +3,9 @@
 {% block content %}
     <h3>Poll</h3>
     {{ user }}
+    {% if error %}
+        {{ error }}
+    {% else %}
     <form method="post">{% csrf_token %}
         <div>
             <h2>{{ poll.title }}</h2>
@@ -50,9 +53,7 @@
                 {% endfor %}
             </ol>
         </div>
-
-
-
         <input type="submit" value="Submit">
     </form>
+    {% endif %}
 {% endblock %}

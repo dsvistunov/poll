@@ -1,4 +1,12 @@
+from django.contrib.auth.models import User
 from django.db import models
+
+
+class Anonymous(models.Model):
+    hash = models.CharField(max_length=32, unique=True)
+
+    def __str__(self):
+        return self.hash
 
 
 class Poll(models.Model):
@@ -7,6 +15,9 @@ class Poll(models.Model):
 
     def get_absolute_url(self):
         return '/polls/%i/' % self.id
+
+    def get_detail_url(self):
+        return '/polls/detail/%i' % self.id
 
 
 class Question(models.Model):
@@ -23,6 +34,8 @@ class Question(models.Model):
     text = models.CharField(max_length=255)
     type = models.CharField(max_length=3, choices=INPUT_TYPES, default='EMP', verbose_name='Answer type')
     size = models.IntegerField(default=1)
+    voted_users = models.ManyToManyField(User)
+    voted_anonymous = models.ManyToManyField(Anonymous)
 
 
 class Answer(models.Model):
