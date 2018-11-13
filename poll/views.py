@@ -1,10 +1,12 @@
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
-from django.db import transaction, IntegrityError
+from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.http import JsonResponse
 from django.views.generic import CreateView, DetailView, UpdateView
 
-from .models import Poll, Question, Answer, UserAgent, Anonymous
+from .models import Poll, Question, UserAgent, Anonymous
 from .forms import PollModelForm, QuestionModelForm, AnswerModelForm
 
 
@@ -22,6 +24,16 @@ class PollCreateView(CreateView):
     model = Poll
     form_class = PollModelForm
     template_name = 'poll_create.html'
+
+    def post(self, request, *args, **kwargs):
+        response = super(PollCreateView, self).post(request, *args, **kwargs)
+        content_type = ContentType.objects.get_for_model(Poll)
+        Permission.objects.create(
+            codename=self.object.permission,
+            name=self.object.get_permission_display(),
+            content_type=content_type,
+        )
+        return response
 
 
 class QuestionCreateView(JSONResponseMixin, CreateView):
@@ -102,5 +114,6 @@ class PollUpdateView(JSONResponseMixin, UpdateView):
                     answer = question.answer_set.get(id=value)
                     answer.votes += 1
                     answer.save()
+        UserAgent.objects.create(date=request.META['HTTP_USER_AGENT'])
         self.object = self.get_object()
         return HttpResponseRedirect(self.object.get_detail_url())

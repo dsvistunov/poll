@@ -5,7 +5,7 @@ from .models import Poll, Question, Answer
 class PollModelForm(ModelForm):
     class Meta:
         model = Poll
-        fields = ['title', 'description']
+        fields = ['title', 'description', 'permission']
 
 
 class QuestionModelForm(ModelForm):

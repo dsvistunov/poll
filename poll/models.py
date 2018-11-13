@@ -10,8 +10,14 @@ class Anonymous(models.Model):
 
 
 class Poll(models.Model):
+    PERMS = (
+        ('not_auth', 'Not authenticated'),
+        ('auth', 'Authenticated'),
+        ('confirmed_email', 'Confirmed email')
+    )
     title = models.CharField(max_length=120)
     description = models.TextField()
+    permission = models.CharField(max_length=16, choices=PERMS)
 
     def get_absolute_url(self):
         return '/polls/%i/' % self.id
