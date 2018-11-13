@@ -5,7 +5,16 @@
     <h3>Create poll</h3>
     <form method="post" id="form" action={% url 'poll_create' %}>
         {% csrf_token %}
-        {{ form.as_p }}
+        <p>
+            {{ form.title.label_tag }}
+            {{ form.title }}
+        </p>
+        <p>{{ form.description.label_tag }}</p>
+        <p>{{ form.description }}</p>
+        <p>
+            {{ form.permission.label_tag }}
+            {{ form.permission }}
+        </p>
         <div>
             <input type="submit" value="Create">
         </div>
