@@ -38,7 +38,10 @@ class Question(models.Model):
     )
     poll = models.ForeignKey(Poll)
     text = models.CharField(max_length=255)
-    type = models.CharField(max_length=3, choices=INPUT_TYPES, default='EMP', verbose_name='Answer type')
+    type = models.CharField(
+        max_length=3, choices=INPUT_TYPES,
+        default='EMP', verbose_name='Answer type'
+    )
     size = models.IntegerField(default=1)
     voted_users = models.ManyToManyField(User)
     voted_anonymous = models.ManyToManyField(Anonymous)

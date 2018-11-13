@@ -59,7 +59,10 @@ class QuestionCreateView(JSONResponseMixin, CreateView):
                     if 'choice' in key:
                         max_value = request.POST.get('max_value', None)
                         min_value = request.POST.get('min_value', None)
-                        answer_form = AnswerModelForm({'text': value, 'max_value': max_value, 'min_value': min_value})
+                        answer_form = AnswerModelForm({
+                            'text': value, 'max_value': max_value,
+                            'min_value': min_value
+                        })
                         if answer_form.is_valid() and self.object:
                             answer = answer_form.save(commit=False)
                             answer.question = self.object
